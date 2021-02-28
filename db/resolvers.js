@@ -1,5 +1,7 @@
 // RESOLVERS
 const User = require("../models/users");
+const Product = require("../models/products");
+const Client = require("../models/clients");
 const bcryptjs = require("bcryptjs");
 require("dotenv").config({ path: "variables.env" });
 const jwt = require("jsonwebtoken");
@@ -16,13 +18,31 @@ const resolvers = {
             const userId = await jwt.verify(token, process.env.SECRET);
             return userId;
         },
+        getProducts: async () => {
+            try {
+                const products = await Product.find({});
+                return products;
+            } catch (e) {
+                console.log("Error getting Products from DB", e);
+            }
+        },
+        getProductById: async (_, { id }) => {
+            const productById = await Product.findById(id);
+            if (!productById) {
+                throw new Error("Product doesnt exist");
+            }
+            try {
+                return productById;
+            } catch (e) {
+                console.log("Error getting Product by ID", e);
+            }
+        },
     },
     Mutation: {
         newUser: async (_, { input }) => {
             const { email, password } = input;
             // Check if user is already registered
             const userExists = await User.findOne({ email });
-            console.log(userExists);
             if (userExists) {
                 throw new Error("User already registered");
             }
@@ -37,7 +57,7 @@ const resolvers = {
                 user.save();
                 return user;
             } catch (e) {
-                console.log("Error saving in DB", e);
+                console.log("Error saving User in DB", e);
             }
         },
         authUser: async (_, { input }) => {
@@ -59,6 +79,46 @@ const resolvers = {
             return {
                 token: createToken(userExists, process.env.SECRET, "24h"),
             };
+        },
+        newProduct: async (_, { input }) => {
+            const { name, stock, price } = input;
+            // Check if product exists
+            const productExists = await Product.findOne({ name });
+
+            if (productExists) {
+                throw new Error("Product already exists");
+            }
+
+            try {
+                // Saving in DB
+                const newProduct = new Product(input);
+                const result = await newProduct.save();
+                console.log("This is result after saving in DB", result);
+                return result;
+            } catch (e) {
+                console.log("Error saving product in DB");
+            }
+        },
+        updateProduct: async (_, { id, input }) => {
+            // Check if product exists and since is gonna updated declare with let!
+            let product = await Product.findById(id);
+            if (!product) {
+                throw new Error("Product doesnt exists");
+            }
+            // Save and update in DB
+            product = await Product.findOneAndUpdate({ _id: id }, input, {
+                new: true,
+            });
+            return product;
+        },
+        deleteProduct: async (_, { id }) => {
+            let product = await Product.findById(id);
+            if (!product) {
+                throw new Error("Product to delete not found in inventory");
+            }
+            await Product.findOneAndDelete({ _id: id });
+
+            return "Product deleted from inventory"
         },
     },
 };
