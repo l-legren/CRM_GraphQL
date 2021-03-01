@@ -24,6 +24,16 @@ const typeDefs = gql`
         created: String
     }
 
+    type Client {
+        id: ID
+        name: String
+        surname: String
+        company: String
+        email: String
+        phone: String
+        seller: ID
+    }
+
     input UserInput {
         name: String!
         surname: String!
@@ -45,9 +55,9 @@ const typeDefs = gql`
     input ClientInput {
         name: String!
         surname: String!
+        company: String!
         email: String!
         phone: String
-        seller: User!
     }
 
     type Query {

@@ -1,4 +1,4 @@
-const mongoose = require("mongooose");
+const mongoose = require("mongoose");
 
 const ClientsSchema = mongoose.Schema({
     name: {
@@ -31,7 +31,7 @@ const ClientsSchema = mongoose.Schema({
         default: Date.now(),
     },
     seller: {
-        type: moongose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: "User"
     }

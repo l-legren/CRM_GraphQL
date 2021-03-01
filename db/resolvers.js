@@ -7,7 +7,7 @@ require("dotenv").config({ path: "variables.env" });
 const jwt = require("jsonwebtoken");
 
 const createToken = (user, secretWord, expiresIn) => {
-    console.log(user);
+    // console.log(user);
     const { id, name, surname } = user;
     return jwt.sign({ id, name, surname }, secretWord, { expiresIn });
 };
@@ -118,7 +118,26 @@ const resolvers = {
             }
             await Product.findOneAndDelete({ _id: id });
 
-            return "Product deleted from inventory"
+            return "Product deleted from inventory";
+        },
+        newClient: async (_, { input }, ctx) => {
+            const { email, seller } = input;
+            // check if client is already registered
+            const client = await Client.findOne({ email });
+            if (client) {
+                throw new Error("Client already registered");
+            }
+            // Assign a seller
+            const newClient = new Client(input);
+            console.log("This is the context", ctx)
+            newClient.seller = ctx.id;
+            // Save into DB
+            try {
+                const result = await newClient.save();
+                return result;
+            } catch (error) {
+                console.log("Error saving new Client into DB", error);
+            }
         },
     },
 };
