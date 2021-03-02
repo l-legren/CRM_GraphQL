@@ -37,6 +37,34 @@ const resolvers = {
                 console.log("Error getting Product by ID", e);
             }
         },
+        getClients: async (_, {}) => {
+            try {
+                const clients = await Client.find({});
+                return clients;
+            } catch (error) {
+                console.log("Error getting Clients", error);
+            }
+        },
+        getClientsSeller: async (_, {}, ctx) => {
+            console.log(ctx)
+            try {
+                const clients = await Client.find({ seller: ctx.user.id });
+                return clients;
+            } catch (error) {
+                console.log("Error getting Clients Seller", error);
+            }
+        },
+        getClientById: async (_, { id }, ctx) => {
+            const client = await Client.findById(id);
+
+            if (!client) {
+                throw new Error("client not found");
+            }
+            if (client.seller.toString() !== ctx.user.id) {
+                throw new Error("No credentials for this client")
+            }
+            return client
+        },
     },
     Mutation: {
         newUser: async (_, { input }) => {
@@ -77,7 +105,7 @@ const resolvers = {
             }
             // Create the Token
             return {
-                token: createToken(userExists, process.env.SECRET, "24h"),
+                token: createToken(userExists, process.env.SECRET, "48h"),
             };
         },
         newProduct: async (_, { input }) => {
@@ -129,8 +157,8 @@ const resolvers = {
             }
             // Assign a seller
             const newClient = new Client(input);
-            console.log("This is the context", ctx)
-            newClient.seller = ctx.id;
+            console.log("This is the context", ctx);
+            newClient.seller = ctx.user.id;
             // Save into DB
             try {
                 const result = await newClient.save();
@@ -139,6 +167,24 @@ const resolvers = {
                 console.log("Error saving new Client into DB", error);
             }
         },
+        updateClient: async (_, {id, input}, ctx) => {
+            // Check if client exists
+            let client = await Client.findById(id)
+            console.log("Client", client)
+            if (!client) {
+                throw new Error("Client doesnt exists")
+            }
+            if(client.seller.toString() !== ctx.user.id) {
+                throw new Error("No credentials for this user")
+            }
+            // Update Client
+            try {
+                client = Client.findOneAndUpdate({_id: id }, input, {new: true})
+                return client
+            } catch (error) {
+                console.log("Error updating client", error)
+            }
+        }
     },
 };
 
