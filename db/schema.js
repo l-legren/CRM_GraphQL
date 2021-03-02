@@ -129,6 +129,8 @@ const typeDefs = gql`
 
         # ORDERS
         newOrder(input: OrderInput): Order
+        updateOrder(id: ID!, input: OrderInput): Order
+        deleteOrder(id: ID!): String
     }
 
 `;

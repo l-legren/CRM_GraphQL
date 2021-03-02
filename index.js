@@ -18,7 +18,7 @@ const server = new ApolloServer({
                 const user = await jwt.verify(token, process.env.SECRET);
                 // console.log("This is user after veryfing token", user);
                 return {
-                    user,
+                    user
                 };
             } catch (error) {
                 console.log("Problem veryfing Token", error);

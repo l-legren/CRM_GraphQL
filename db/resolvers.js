@@ -97,12 +97,7 @@ const resolvers = {
             if (order.seller.toString() !== ctx.user.id) {
                 throw new Error("No credentials for this order");
             }
-            return order
-            // try {
-            //     return order;
-            // } catch (error) {
-            //     console.log("Error getting order", error);
-            // }
+            return order;
         },
     },
     Mutation: {
@@ -271,6 +266,55 @@ const resolvers = {
             const result = await newOrder.save();
             return result;
             // Save it into db
+        },
+        updateOrder: async (_, { id, input }, ctx) => {
+            // Check if client and order exists
+            let order = await Order.findById(id);
+            if (!order) {
+                throw new Error("Order doesnt exists");
+            }
+            let client = await Client.findById(input.client);
+            if (!client) {
+                throw new Error("Client doesnt exists");
+            }
+            // Check credentials
+            if (client.seller.toString() !== ctx.user.id) {
+                throw new Error("No credentials for this user");
+            }
+            // Check stock
+            for await (const article of input.order) {
+                const product = await Product.findById(article.id);
+                if (article.quantity > product.stock) {
+                    throw new Error("Quantity exceeds available stock");
+                } else {
+                    product.stock = product.stock - article.quantity;
+                    await product.save();
+                }
+            }
+            // Update Client
+            try {
+                order = Order.findOneAndUpdate({ _id: id }, input, {
+                    new: true,
+                });
+                return order;
+            } catch (error) {
+                console.log("Error updating client", error);
+            }
+        },
+        deleteOrder: async (_, { id }, ctx) => {
+            // Check order
+            const order = await Order.findById(id);
+            // Check credentials
+            if (order.seller != ctx.user.id) {
+                throw new Error("No credentials for this order");
+            }
+            // Deleting from DB
+            try {
+                await Order.findByIdAndDelete(id);
+                return "Order deleted";
+            } catch (error) {
+                console.log("Error removing order");
+            }
         },
     },
 };
