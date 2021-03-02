@@ -2,9 +2,11 @@
 const User = require("../models/users");
 const Product = require("../models/products");
 const Client = require("../models/clients");
+const Order = require("../models/orders");
 const bcryptjs = require("bcryptjs");
 require("dotenv").config({ path: "variables.env" });
 const jwt = require("jsonwebtoken");
+const { findById } = require("../models/users");
 
 const createToken = (user, secretWord, expiresIn) => {
     // console.log(user);
@@ -46,7 +48,7 @@ const resolvers = {
             }
         },
         getClientsSeller: async (_, {}, ctx) => {
-            console.log(ctx)
+            console.log(ctx);
             try {
                 const clients = await Client.find({ seller: ctx.user.id });
                 return clients;
@@ -61,9 +63,17 @@ const resolvers = {
                 throw new Error("client not found");
             }
             if (client.seller.toString() !== ctx.user.id) {
-                throw new Error("No credentials for this client")
+                throw new Error("No credentials for this client");
             }
-            return client
+            return client;
+        },
+        getOrders: async () => {
+            try {
+                const orders = await Order.find({});
+                return orders;
+            } catch (error) {
+                console.log("Error fetching orders", error);
+            }
         },
     },
     Mutation: {
@@ -149,6 +159,7 @@ const resolvers = {
             return "Product deleted from inventory";
         },
         newClient: async (_, { input }, ctx) => {
+            console.log(input);
             const { email, seller } = input;
             // check if client is already registered
             const client = await Client.findOne({ email });
@@ -167,24 +178,71 @@ const resolvers = {
                 console.log("Error saving new Client into DB", error);
             }
         },
-        updateClient: async (_, {id, input}, ctx) => {
+        updateClient: async (_, { id, input }, ctx) => {
             // Check if client exists
-            let client = await Client.findById(id)
-            console.log("Client", client)
+            let client = await Client.findById(id);
+            console.log("Client", client);
             if (!client) {
-                throw new Error("Client doesnt exists")
+                throw new Error("Client doesnt exists");
             }
-            if(client.seller.toString() !== ctx.user.id) {
-                throw new Error("No credentials for this user")
+            if (client.seller.toString() !== ctx.user.id) {
+                throw new Error("No credentials for this user");
             }
             // Update Client
             try {
-                client = Client.findOneAndUpdate({_id: id }, input, {new: true})
-                return client
+                client = Client.findOneAndUpdate({ _id: id }, input, {
+                    new: true,
+                });
+                return client;
             } catch (error) {
-                console.log("Error updating client", error)
+                console.log("Error updating client", error);
             }
-        }
+        },
+        deleteClient: async (_, { id }, ctx) => {
+            // Check if client exists
+            const client = await Client.findById(id);
+            if (!client) {
+                throw new Error("Client not found");
+            }
+            // Check credentials of user
+            if (client.seller.toString() !== ctx.user.id) {
+                throw new Error("No credentials for this user");
+            }
+            // Delete client
+            try {
+                await Client.findOneAndDelete({ _id: id });
+                return "Client deleted";
+            } catch (error) {
+                console.log("Error deleting Client", error);
+            }
+        },
+        newOrder: async (_, { input }, ctx) => {
+            // Check client exists
+            const client = await Client.findById(input.client);
+            if (!client) {
+                throw new Error("Client not found");
+            }
+            // Check credentials of user
+            if (client.seller.toString() !== ctx.user.id) {
+                throw new Error("No credentials for this user");
+            }
+            // Check that stock is enough
+            for await (const article of input.order) {
+                const product = await Product.findById(article.id);
+                if (article.quantity > product.stock) {
+                    throw new Error("Quantity exceeds available stock");
+                } else {
+                    product.stock = product.stock - article.quantity;
+                    await product.save();
+                }
+            }
+            // Create new Order
+            const newOrder = new Order(input);
+            newOrder.seller = ctx.user.id;
+            const result = await newOrder.save();
+            return result;
+            // Save it into db
+        },
     },
 };
 
