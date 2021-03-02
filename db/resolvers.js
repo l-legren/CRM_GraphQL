@@ -75,6 +75,35 @@ const resolvers = {
                 console.log("Error fetching orders", error);
             }
         },
+        getOrderBySeller: async (_, {}, ctx) => {
+            // Check if order exists
+            const order = await Order.find({ seller: ctx.user.id });
+            if (!order) {
+                throw new Error("Order not found");
+            }
+            try {
+                return order;
+            } catch (error) {
+                console.log("Error getting order", error);
+            }
+        },
+        getOrderById: async (_, { id }, ctx) => {
+            // Check if order exists
+            const order = await Order.findById(id);
+            if (!order) {
+                throw new Error("Order not found");
+            }
+            console.log(order.seller, ctx.user.id);
+            if (order.seller.toString() !== ctx.user.id) {
+                throw new Error("No credentials for this order");
+            }
+            return order
+            // try {
+            //     return order;
+            // } catch (error) {
+            //     console.log("Error getting order", error);
+            // }
+        },
     },
     Mutation: {
         newUser: async (_, { input }) => {
