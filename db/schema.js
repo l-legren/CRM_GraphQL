@@ -88,6 +88,8 @@ const typeDefs = gql`
     input OrderProductInput {
         id: ID
         quantity: Int
+        name: String
+        price: Float
     }
 
     input OrderInput {
@@ -105,7 +107,7 @@ const typeDefs = gql`
 
     type Query {
         # USERS
-        getUser(token: String): User
+        getUser: User
 
         # PRODUCTS
         getProducts: [Product]
