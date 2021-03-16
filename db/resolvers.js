@@ -16,8 +16,8 @@ const createToken = (user, secretWord, expiresIn) => {
 
 const resolvers = {
     Query: {
-        getUser: async (_, { }, ctx) => {
-            return ctx.user
+        getUser: async (_, {}, ctx) => {
+            return ctx.user;
         },
         getProducts: async () => {
             try {
@@ -76,11 +76,14 @@ const resolvers = {
         },
         getOrderBySeller: async (_, {}, ctx) => {
             // Check if order exists
-            const order = await Order.find({ seller: ctx.user.id });
+            const order = await Order.find({ seller: ctx.user.id }).populate(
+                "client"
+            );
             if (!order) {
                 throw new Error("Order not found");
             }
             try {
+                console.log(order);
                 return order;
             } catch (error) {
                 console.log("Error getting order", error);
@@ -347,13 +350,15 @@ const resolvers = {
                 throw new Error("No credentials for this user");
             }
             // Check stock
-            for await (const article of input.order) {
-                const product = await Product.findById(article.id);
-                if (article.quantity > product.stock) {
-                    throw new Error("Quantity exceeds available stock");
-                } else {
-                    product.stock = product.stock - article.quantity;
-                    await product.save();
+            if (input.order) {
+                for await (const article of input.order) {
+                    const product = await Product.findById(article.id);
+                    if (article.quantity > product.stock) {
+                        throw new Error("Quantity exceeds available stock");
+                    } else {
+                        product.stock = product.stock - article.quantity;
+                        await product.save();
+                    }
                 }
             }
             // Update Client
